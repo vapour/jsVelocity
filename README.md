@@ -3,7 +3,7 @@
 
 ## Where to Use?
 
-You can use mustache.js rendering stuff in various scenarios. E.g. you can
+You can use velocity.js rendering stuff in various scenarios. E.g. you can
 render templates in your browser.
 
 
