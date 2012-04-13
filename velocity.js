@@ -1,15 +1,29 @@
-app.Template = (function (undefined) {
+var Template = (function (undef) {
     'use strict';
-    var util = app.Util,
-        templates = {},
+    var util,
+		templates = {},
         SENTENCE = /#([a-z]+)\(([\s\S]+?)\)/,
         VARIABLE = /\$\{\w[\w\.]*\}/g,
         velocity;
-
+	
+	util = {
+		each: function (arr, cb) {
+			var i = 0, l = arr.length;
+			for (; i < l; i++) {
+				cb(arr[i], i, arr);
+			}
+		},
+		trim: function (str) {
+			return str.replace(/^\s+|\s+$/g, '');
+		},
+		log: function(msg, type){
+			Template.log(msg, type);
+		}
+	};
+	
     velocity = {
         parse: function (str, params) {
             var result;
-
             params = params || {};
 
             while ((result = SENTENCE.exec(str)) !== null) {
@@ -32,7 +46,7 @@ app.Template = (function (undefined) {
             str = this.replaceVariable(str, params);
             return str;
         },
-        parseSet: function (str, params, result) { //解析#set
+        parseSet: function (str, params, result) { //parse #set
             var start = result.index,
                 end = start + result[0].length,
                 expression = result[2];
@@ -41,25 +55,25 @@ app.Template = (function (undefined) {
                 expression = expression.split('=');
                 params[expression[0].slice(2, -1)] = this.express(expression[1], params);
             } else {
-                app.Log('#set 语法错误', 'warn');
+                util.log('#set 语法错误', 'warn');
             }
             str = str.slice(0, start) + str.slice(end);
             return str;
         },
-        parseIf: function (str, params, result) { //解析#if
+        parseIf: function (str, params, result) { //parse #if
             var flag = this.express(this.velocityToVariable(result[2], params), params),
                 start = result.index,
                 middle = this.matchElse(str),
                 end = this.matchEnd(str);
 
             if (end === -1) {
-                app.Log('语法错误，缺少#end', 'warn');
+                util.log('语法错误，缺少#end', 'warn');
                 return str;
             }
 
-            //#if(expression) 长度=5+expression.length
-            //#end 长度=4
-            //#else 长度=5
+            //#if(expression) length=5+expression.length
+            //#end length=4
+            //#else length=5
             if (middle > -1 && middle < end) {
                 if (flag) {
                     str = str.slice(0, start) + str.slice(start + result[2].length + 5, middle) + str.slice(end + 4);
@@ -75,9 +89,9 @@ app.Template = (function (undefined) {
             }
             return str;
         },
-        //#foreach(expression) 长度=10+expression.length
-        //#end 长度=4
-        parseForeach: function (str, params, result) { //解析#foreach
+        //#foreach(expression) length=10+expression.length
+        //#end length=4
+        parseForeach: function (str, params, result) { //parse #foreach
             var start = result.index,
                 end = this.matchEnd(str),
                 context = str.slice(start + result[2].length + 10, end),
@@ -85,14 +99,14 @@ app.Template = (function (undefined) {
                 list, item, html = '';
 
             if (arr.length !== 2) {
-                app.log('语法错误: ' + result[0], 'error');
+                util.log('语法错误: ' + result[0], 'error');
                 return str;
             }
 
-            item = util.trim(arr[0]).slice(1);
-            list = params[util.trim(arr[1]).slice(1)]
+            item = util.trim(arr[0]).slice(2, -1);
+			list = this.getVariable(util.trim(arr[1]).slice(2, -1), params);
 
-  		if (list) {
+			if (list) {
 				util.each(list, function (o, index) {
 					var p = velocity.clone(params);
 					p[item] = list[index];
@@ -101,13 +115,12 @@ app.Template = (function (undefined) {
 					html += velocity.parse(context, p);
 				});
 			}
-
             str = str.slice(0, start) + html + str.slice(end + 4);
 
             return str;
         },
 		//#macro(funcName $variable1 $variable2);
-        parseMacro: function(str, params, result){ //解析#macro
+        parseMacro: function(str, params, result){ //parse #macro
             var start = result.index,
                 end = start + result[0].length,
                 ret = '', func,
@@ -115,13 +128,13 @@ app.Template = (function (undefined) {
             
             //过滤空格，计算变量值
             util.each(result[2].split(' '), function(v, index){
-                if (!util.isEmpty(v)) {
+                v = util.trim(v);
+				if (v !== '') {
                     if (index > 0) {
-                        arr.push(velocity.getVariable(util.trim(v).slice(2, -1), params));
+                        arr.push(velocity.getVariable(v.slice(2, -1), params));
                     } else {
-                        arr.push(util.trim(v));
+                        arr.push(v);
                     }
-                    
                 }
             });
             
@@ -131,15 +144,15 @@ app.Template = (function (undefined) {
                 if (func) {
                     ret = func.apply(null, arr.slice(1)) || '';
                 } else {
-                    app.Log('#macro ' + arr[0] + ' 未定义',  'error');
+                    util.log('#macro ' + arr[0] + ' 未定义',  'error');
                 }
             } else {
-                app.Log('#macro 语法错误，缺少宏名称', 'error')
+                util.log('#macro 语法错误，缺少宏名称', 'error')
             }
             str = str.slice(0, start) + ret + str.slice(end);
             return str;
         },
-        clone: function () { //抄写对象
+        clone: function () { //clone object
             var ret = {},
                 i, len, o, p;
             for (i = 0, len = arguments.length; i < len; i++) {
@@ -152,24 +165,24 @@ app.Template = (function (undefined) {
             }
             return ret;
         },
-        express: function (expression, params) { //计算表达式
+        express: function (expression, params) {
             return eval('(' + expression + ')');
         },
-        velocityToVariable: function (str, params) { //将velocity转换成JS
+        velocityToVariable: function (str, params) { //velocity to JS
             str = str.replace(VARIABLE, function (all) {
 				return 'params.' + all.slice(2, -1);
             });
             return str;
         },
-        replaceVariable: function (str, params) { //显示velocity变量
+        replaceVariable: function (str, params) { //display velocity variables
             str = str.replace(VARIABLE, function (all) {
                 var name = all.slice(2, -1),
                     value = velocity.getVariable(name, params);
 
-                if (value !== undefined) {
+                if (value !== undef) {
                     return value;
                 } else {
-                    app.Log('变量 ' + all + '不存在', 'warn');
+                    util.log('Variables ' + all + ' is undefined', 'warn');
                     return all;
                 }
             });
@@ -183,10 +196,10 @@ app.Template = (function (undefined) {
                 ret = params;
                 arr = name.split('.');
                 for (i = 0, len = arr.length; i < len; i++) {
-                    if (ret[arr[i]] !== undefined) {
+                    if (ret[arr[i]] !== undef) {
                         ret = ret[arr[i]];
                     } else {
-                        app.Log('变量 ' + name + ' 不存在', 'warn');
+                        util.log('Variables ' + name + ' is undefined', 'warn');
                         ret = '';
                         break;
                     }
@@ -194,7 +207,7 @@ app.Template = (function (undefined) {
             }
             return ret;
         },
-        matchEnd: function (str) { //匹配查找#end的位置
+        matchEnd: function (str) { //find the position of #end
             var reg = /#(foreach|if|end)/g,
                 start = 0,
                 index = -1,
@@ -223,7 +236,7 @@ app.Template = (function (undefined) {
 
             return index;
         },
-        matchElse: function (str) { //匹配查找#else的位置
+        matchElse: function (str) { //find the position of #else
             var reg = /#(if|else|end)/g,
                 start = 0,
                 index = -1,
@@ -257,18 +270,65 @@ app.Template = (function (undefined) {
     return {
         render: function (name, params) {
 			if (typeof templates[name] !== 'string') {
-                app.Log('Template ' + name + ' not found!', 'warn');
+                util.log('Template ' + name + ' not found!', 'warn');
 				return '';
             } else {
                 return velocity.parse(templates[name], params);
             }
         },
         define: function (name, template) {
-            if (typeof template == 'string') {
+            if (typeof template == 'string') { //string
                 templates[name] = template;
-            } else { //数组
+            } else { //array
                 templates[name] = template.join('');
             }
         }
     };
+})();
+
+Template.log = (function () {
+    'use strict';
+    var debug = window.location.href.indexOf('debug') > -1,
+        log = function () {
+            var div = document.createElement('div');
+            div.style.cssText = 'position:fixed;width:100%;bottom:0;height:120px;border-top:2px solid #ccc;backround-color:#efefef;overflow-y:scroll';
+            document.body.appendChild(div);
+
+            log = function (msg, type) {
+                var d = document.createElement('div');
+                d.style.padding = '4px';
+                switch (type) {
+                case 'warn':
+                    d.style.color = 'red';
+                    break;
+                case 'info':
+                    break;
+                }
+                d.innerHTML = msg;
+                div.appendChild(d);
+            };
+        };
+    if (debug) {
+        if (window.console && console.log) {
+            return function (msg, type) {
+                switch (type) {
+                case 'info':
+                    console.info(msg);
+                    break;
+                case 'warn':
+                    console.warn(msg);
+                    break;
+                default:
+                    console.log(msg);
+                    break;
+                }
+
+            };
+        } else {
+            log();
+            return log;
+        }
+    } else {
+        return function () {};
+    }
 })();
