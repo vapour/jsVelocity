@@ -55,7 +55,7 @@ var Template = (function (undef) {
                 expression = expression.split('=');
                 params[expression[0].slice(2, -1)] = this.express(expression[1], params);
             } else {
-                util.log('#set 语法错误', 'warn');
+                util.log('#set syntac error', 'warn');
             }
             str = str.slice(0, start) + str.slice(end);
             return str;
@@ -67,7 +67,7 @@ var Template = (function (undef) {
                 end = this.matchEnd(str);
 
             if (end === -1) {
-                util.log('语法错误，缺少#end', 'warn');
+                util.log('syntax error，miss #end', 'warn');
                 return str;
             }
 
@@ -99,7 +99,7 @@ var Template = (function (undef) {
                 list, item, html = '';
 
             if (arr.length !== 2) {
-                util.log('语法错误: ' + result[0], 'error');
+                util.log('syntax error: ' + result[0], 'error');
                 return str;
             }
 
@@ -126,7 +126,7 @@ var Template = (function (undef) {
                 ret = '', func,
                 arr = [];
             
-            //过滤空格，计算变量值
+            //filter whitespace
             util.each(result[2].split(' '), function(v, index){
                 v = util.trim(v);
 				if (v !== '') {
@@ -144,10 +144,10 @@ var Template = (function (undef) {
                 if (func) {
                     ret = func.apply(null, arr.slice(1)) || '';
                 } else {
-                    util.log('#macro ' + arr[0] + ' 未定义',  'error');
+                    util.log('#macro ' + arr[0] + ' is undefined',  'error');
                 }
             } else {
-                util.log('#macro 语法错误，缺少宏名称', 'error')
+                util.log('#macro syntax error, macro name is undefined', 'error')
             }
             str = str.slice(0, start) + ret + str.slice(end);
             return str;
