@@ -1,26 +1,26 @@
 var Template = (function (undef) {
     'use strict';
     var util,
-		templates = {},
+        templates = {},
         SENTENCE = /#([a-z]+)\(([\s\S]+?)\)/,
         VARIABLE = /\$\{\w[\w\.]*\}/g,
         velocity;
 	
-	util = {
-		each: function (arr, cb) {
-			var i = 0, l = arr.length;
-			for (; i < l; i++) {
-				cb(arr[i], i, arr);
-			}
-		},
-		trim: function (str) {
-			return str.replace(/^\s+|\s+$/g, '');
-		},
-		log: function(msg, type){
-			Template.log(msg, type);
-		}
-	};
-	
+    util = {
+        each: function (arr, cb) {
+            var i = 0, l = arr.length;
+            for (; i < l; i++) {
+                cb(arr[i], i, arr);
+            }
+        },
+        trim: function (str) {
+            return str.replace(/^\s+|\s+$/g, '');
+        },
+        log: function(msg, type){
+            Template.log(msg, type);
+        }
+    };
+
     velocity = {
         parse: function (str, params) {
             var result;
@@ -104,22 +104,22 @@ var Template = (function (undef) {
             }
 
             item = util.trim(arr[0]).slice(2, -1);
-			list = this.getVariable(util.trim(arr[1]).slice(2, -1), params);
-
-			if (list) {
-				util.each(list, function (o, index) {
-					var p = velocity.clone(params);
-					p[item] = list[index];
-					p.velocityCount = index + 1;
-	
-					html += velocity.parse(context, p);
-				});
-			}
+            list = this.getVariable(util.trim(arr[1]).slice(2, -1), params);
+            
+            if (list) {
+                util.each(list, function (o, index) {
+                    var p = velocity.clone(params);
+                    p[item] = list[index];
+                    p.velocityCount = index + 1;
+                    
+                    html += velocity.parse(context, p);
+                });
+            }
             str = str.slice(0, start) + html + str.slice(end + 4);
 
             return str;
         },
-		//#macro(funcName $variable1 $variable2);
+	//#macro(funcName $variable1 $variable2);
         parseMacro: function(str, params, result){ //parse #macro
             var start = result.index,
                 end = start + result[0].length,
