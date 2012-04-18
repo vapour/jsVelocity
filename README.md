@@ -1,4 +1,4 @@
-#jsVelocity - An JavaScript Template Engine of Velocity
+#jsVelocity - A JavaScript Template Engine of Velocity
 
 
 ## Where to Use?
