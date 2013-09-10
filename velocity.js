@@ -119,7 +119,7 @@ var Template = (function (undef) {
 
             return str;
         },
-	//#macro(funcName $variable1 $variable2);
+        //#macro(funcName $variable1 $variable2);
         parseMacro: function(str, params, result){ //parse #macro
             var start = result.index,
                 end = start + result[0].length,
@@ -237,26 +237,27 @@ var Template = (function (undef) {
             return index;
         },
         matchElse: function (str) { //find the position of #else
-            var reg = /#(if|else|end)/g,
+            var reg = /#(foreach|if|else|end)/g,
                 start = 0,
                 index = -1,
                 result;
 
             while ((result = reg.exec(str)) !== null) {
                 switch (result[1]) {
-                case 'if':
-                    start += 1;
-                    break;
-                case 'end':
-                    start -= 1;
-                    break;
-                case 'else':
-                    if (start === 1) {
-                        index = result.index;
-                    }
-                    break;
-                default:
-                    break;
+                    case 'foreach':
+                    case 'if':
+                        start += 1;
+                        break;
+                    case 'end':
+                        start -= 1;
+                        break;
+                    case 'else':
+                        if (start === 1) {
+                            index = result.index;
+                        }
+                        break;
+                    default:
+                        break;
                 }
 
                 if (index > -1) {
